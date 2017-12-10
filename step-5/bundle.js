@@ -308,70 +308,30 @@ _leancloudStorage2.default.init({
 var app = new _vue2.default({
     el: '#app',
     data: {
-        todos: [],
-        newTodo: '',
-        actionType: 'signUp',
+        todos: [], // todo列表
+        newTodo: '', // 输入的内容
+        actionType: 'signUp', // 注册or登录
+        // 供注册和登录框使用的form数据列表
         formData: {
             username: '',
             password: ''
         },
         currentUser: null
     },
+    computed: {
+        disabled: function disabled() {
+            return this.formData.username === '' || this.formData.password === '';
+        }
+    },
+    // 持久化
+    created: function created() {
+        // 检查用户是否登录
+        this.currentUser = this.getCurrentUser();
+        this.fetchTodos();
+    },
+
     methods: {
-        fetchTodos: function fetchTodos() {
-            var _this = this;
-
-            if (this.currentUser) {
-                var query = new _leancloudStorage2.default.Query('AllTodos');
-                query.find().then(function (todos) {
-                    var avAllTodos = todos[0];
-                    console.log(avAllTodos);
-                    var id = avAllTodos.id;
-                    console.log(id);
-                    _this.todos = JSON.parse(avAllTodos.attributes.content);
-                    _this.todos.id = id; // 保存id，这里如果没有id证明还没有保存
-                    console.log(todos);
-                    console.log(id);
-                }, function (error) {
-                    console.log(error);
-                });
-            }
-        },
-        updateTodos: function updateTodos() {
-            var dataString = JSON.stringify(this.todos);
-            var avTodos = _leancloudStorage2.default.Object.createWithoutData('AllTodos', this.todos.id);
-
-            avTodos.set('content', dataString);
-            avTodos.save().then(function () {
-                console.log('更新成功');
-            });
-        },
-        saveTodos: function saveTodos() {
-            var dataString = JSON.stringify(this.todos);
-            var AVTodos = _leancloudStorage2.default.Object.extend('AllTodos');
-            var avTodos = new AVTodos();
-
-            // 设置读写权限
-            var acl = new _leancloudStorage2.default.ACL();
-            acl.setReadAccess(_leancloudStorage2.default.User.current(), true);
-            acl.setWriteAccess(_leancloudStorage2.default.User.current(), true);
-
-            avTodos.set('content', dataString);
-            avTodos.setACL(acl); // 访问权限控制
-            avTodos.save().then(function (todo) {
-                this.todos.id = todo.id;
-                console.log('保存成功');
-            }, function (error) {
-                console.log('保存失败');
-            });
-        },
-        saveOrUpdateTodos: function saveOrUpdateTodos() {
-            if (this.todos.id) {
-                this.updateTodos();
-            } else {
-                this.saveTodos();
-            }
-        },
+        // 添加新的todo
         addNewTodo: function addNewTodo() {
             var newToDo = this.newTodo.trim();
             if (newToDo) {
@@ -384,37 +344,92 @@ var app = new _vue2.default({
             }
             this.newTodo = '';
         },
+        // 删除todo
         removeTodo: function removeTodo(todo) {
             var index = this.todos.indexOf(todo);
             this.todos.splice(index, 1);
             this.saveOrUpdateTodos();
         },
+        // 改变todo的完成状态
         changeStatus: function changeStatus() {
             this.saveOrUpdateTodos();
         },
+        // 更新todo列表或者创建todo列表
+        saveOrUpdateTodos: function saveOrUpdateTodos() {
+            if (this.todos.id) {
+                this.updateTodos();
+            } else {
+                this.saveTodos();
+            }
+        },
+        // 更新todos
+        updateTodos: function updateTodos() {
+            var dataString = JSON.stringify(this.todos);
+            // 根据id更新云端的avTodos
+            var avTodos = _leancloudStorage2.default.Object.createWithoutData('AllTodos', this.todos.id);
+            avTodos.set('content', dataString);
+            avTodos.save().then(function () {
+                console.log('更新成功');
+            });
+        },
+        // 创建某用户的todos
+        saveTodos: function saveTodos() {
+            var dataString = JSON.stringify(this.todos);
+            // 构建表名 AllTodos，声明类型
+            var AVTodos = _leancloudStorage2.default.Object.extend('AllTodos');
+            // 新建对象
+            var avTodos = new AVTodos();
+
+            // 设置读写权限
+            var acl = new _leancloudStorage2.default.ACL();
+            acl.setReadAccess(_leancloudStorage2.default.User.current(), true);
+            acl.setWriteAccess(_leancloudStorage2.default.User.current(), true);
+
+            // 设置内容
+            avTodos.set('content', dataString);
+            avTodos.setACL(acl); // 访问权限控制
+            // 保存
+            avTodos.save().then(function (todo) {
+                // 本地保存当前todo的id
+                this.todos.id = todo.id;
+                console.log('保存成功');
+            }, function (error) {
+                console.log('保存失败');
+            });
+        },
+
+        // 注册
         signUp: function signUp() {
-            var _this2 = this;
+            var _this = this;
 
             var user = new _leancloudStorage2.default.User();
             user.setUsername(this.formData.username);
             user.setPassword(this.formData.password);
             user.signUp().then(function (loginedUser) {
-                _this2.currentUser = _this2.getCurrentUser();
-                console.log(_this2.currentUser);
+                _this.currentUser = _this.getCurrentUser();
+                console.log(_this.currentUser);
             }, function (error) {
                 alert('注册失败');
             });
         },
+        // 登录
         login: function login() {
-            var _this3 = this;
+            var _this2 = this;
 
             _leancloudStorage2.default.User.logIn(this.formData.username, this.formData.password).then(function (loginedUser) {
-                _this3.currentUser = _this3.getCurrentUser(); //
-                _this3.fetchTodos();
+                _this2.currentUser = _this2.getCurrentUser(); //
+                _this2.fetchTodos();
             }, function (error) {
                 alert('登录失败');
             });
         },
+        // 登出功能
+        logout: function logout() {
+            _leancloudStorage2.default.User.logOut();
+            this.currentUser = null;
+            window.location.reload();
+        },
+        // 返回所需的currentUser对象
         getCurrentUser: function getCurrentUser() {
             var current = _leancloudStorage2.default.User.current();
             if (current) {
@@ -428,20 +443,24 @@ var app = new _vue2.default({
                 return null;
             }
         },
-        // 登出功能
-        logout: function logout() {
-            _leancloudStorage2.default.User.logOut();
-            this.currentUser = null;
-            window.location.reload();
-        }
-    },
-    // 持久化
-    created: function created() {
-        // this.newTodo = localStorage.getItem('newToDo') || '';
+        // 用于在登录/进入页面时获取todos
+        fetchTodos: function fetchTodos() {
+            var _this3 = this;
 
-        // 检查用户是否登录
-        this.currentUser = this.getCurrentUser();
-        this.fetchTodos();
+            if (this.currentUser) {
+                // 获取当前用户的AllTodos
+                var query = new _leancloudStorage2.default.Query('AllTodos');
+                query.find().then(function (todos) {
+                    var avAllTodos = todos[0]; // 获取保存当前用户所有todo的列表
+                    var id = avAllTodos.id;
+                    _this3.todos = JSON.parse(avAllTodos.attributes.content);
+                    _this3.todos.id = id; // 保存id，这里如果没有id证明还没有创建过todo
+                }, function (error) {
+                    console.log(error);
+                });
+            }
+        }
+
     }
 });
 
