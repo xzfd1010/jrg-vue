@@ -1,0 +1,120 @@
+<html>
+<head>
+    <meta charset=utf-8>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            width: 600px;
+            margin: 60px auto;
+        }
+
+        .newTask input {
+            display: block;
+            width: 100%;
+            height: 36px;
+            line-height: 36px;
+            padding-left: 10px;
+        }
+        input[type=button]{
+            display: inline-block;
+            padding:5px 10px;
+
+        }
+        ol {
+            counter-reset: section;
+        }
+
+        li {
+            display: flex;
+            flex-flow: row nowrap;
+            justify-content: space-between;
+            align-items: center;
+            line-height: 36px;
+            font-size: 14px;
+        }
+
+        li:before {
+            counter-increment: section;
+            content: counter(section) ".";
+        }
+
+        .btn-close {
+            display: inline-block;
+            width: 25px;
+            height: 26px;
+            text-align: center;
+            background: #333;
+            border: none;
+            color: white;
+            font-size: 20px;
+            line-height: 26px;
+        }
+
+        .content {
+            width: 150px;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <section id="signInAndSignUp" v-if="!currentUser">
+        <div>
+            <label><input type="radio" name="type" v-model="actionType" value="signUp">注册</label>
+            <label><input type="radio" name="type" v-model="actionType" value="login">登入</label>
+        </div>
+        <div class="signUp" v-if="actionType==='signUp'">
+            <form @submit.prevent="signUp">
+                <div class="formRow">
+                    用户名<input type="text" v-model="formData.username">
+                </div>
+                <div class="formRow">
+                    密码<input type="password" v-model="formData.password">
+                </div>
+                <div class="formActions">
+                    <input type="submit" value="注册">
+                </div>
+            </form>
+        </div>
+        <div class="login" v-else>
+            <form @submit.prevent="login">
+                <div class="formRow">
+                    用户名<input type="text" v-model="formData.username">
+                </div>
+                <div class="formRow">
+                    密码<input type="password" v-model="formData.password">
+                </div>
+                <div class="formActions">
+                    <input type="submit" value="登入">
+                </div>
+            </form>
+        </div>
+    </section>
+    <section id="todo" v-if="currentUser">
+        <p>
+            <input type="button" @click="logout" value="登出">
+        </p>
+        <div class="newTask">
+            <input type="text" @keyup.enter="addNewTodo" v-model="newTodo" placeholder="请输入待办项">
+        </div>
+        <ol class="todos">
+            <li v-for="todo in todos">
+                <div class="content">{{todo.title}}</div>
+                <input type="checkbox" name="" id="ch" v-model="todo.done" @change="changeStatus()">
+                <span v-if="todo.done">已完成</span>
+                <span v-else>未完成</span>
+                <span>创建时间</span>
+                <span>{{todo.createdAt}}</span>
+                <button @click="removeTodo(todo)" type="button" class="btn-close">&times;</button>
+            </li>
+        </ol>
+    </section>
+
+</div>
+<script src="bundle.js"></script>
+</body>
+</html>
